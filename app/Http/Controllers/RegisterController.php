@@ -9,8 +9,15 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use App\Models\User;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Hash;
+use PHPOpenSourceSaver\JWTAuth\Exceptions\JWTException;
+use PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth;
+use Symfony\Component\HttpFoundation\JsonResponse;
+
+use function Tinify\fromFile;
+use function Tinify\setKey;
 
 class RegisterController extends Controller
 {
@@ -43,6 +50,8 @@ class RegisterController extends Controller
 
         $photoPath = $request->file('photo')->store('photos', 'public');
 
+        $this->imageOptimization($photoPath);
+
         User::create([
             'name' => $request->name,
             'email' => $request->email,
@@ -54,5 +63,46 @@ class RegisterController extends Controller
 
         return redirect()->route('register.form')->with('success', 'User registered successfully!');
     }
+
+    /**
+     * @param $photoPath
+     * @return void
+     */
+    private function imageOptimization ($photoPath): void
+    {
+        setKey(env('TINYPNG_API_KEY'));
+
+        $absFilePath = public_path('storage') . "/" . $photoPath;
+
+        $source = fromFile($absFilePath);
+
+        $resizedImage = $source->resize([
+            "method" => "cover",
+            "width" => 70,
+            "height" => 70
+        ]);
+
+        $resizedImage->toFile($absFilePath);
+    }
+
+    /**
+     * @param Request $request
+     * @return RedirectResponse|JsonResponse
+     */
+    public function login(Request $request): RedirectResponse|JsonResponse
+    {
+        $credentials = $request->only('email', 'password');
+
+        try {
+            if (!JWTAuth::attempt($credentials) || !Auth::attempt($credentials)) {
+                return redirect()->back()->withErrors(['email' => 'Invalid credentials']);
+            }
+
+            return redirect()->route('register.form');
+        } catch (JWTException $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
 }
 

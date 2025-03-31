@@ -5,15 +5,19 @@
     <thead>
     <tr>
         <th>#</th>
-        <th>Имя</th>
+        <th>Photo</th>
+        <th>Name</th>
         <th>Email</th>
-        <th>Телефон</th>
+        <th>Phone</th>
     </tr>
     </thead>
     <tbody id="users-list">
     @foreach ($users as $user)
         <tr>
             <td>{{ $user->id }}</td>
+            <td>
+                <img src="@if ($user->photo) {{url('storage/' . $user->photo)}} @else {{url('storage/default.jpg')}} @endif" alt="" title="" />
+            </td>
             <td>{{ $user->name }}</td>
             <td>{{ $user->email }}</td>
             <td>{{ $user->phone }}</td>
