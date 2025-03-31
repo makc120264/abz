@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\RegisterController;
+use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -14,6 +15,7 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
+Route::get('/users', [UserController::class, 'index'])->name('users.index');
 Route::get('/', [RegisterController::class, 'create'])->name('register.form');
 Route::get('/register', [RegisterController::class, 'create'])->name('register.form');
 Route::post('/register', [RegisterController::class, 'store'])->name('register.store');
