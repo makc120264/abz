@@ -1,5 +1,8 @@
 <?php
 
+use App\Http\Controllers\RegisterController;
+use App\Http\Controllers\UserController;
+use App\Models\Position;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -14,9 +17,15 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-use App\Models\Position;
+Route::get('/users/{id}', [UserController::class, 'index']);
+Route::get('/users', [UserController::class, 'index']);
+Route::post('/users', [RegisterController::class, 'store']);
 
-Route::get('/v1/positions', function () {
+Route::get('/token', function () {
+    return response()->json(['data' => UserController::getToken()]);
+});
+
+Route::get('/positions', function () {
     return response()->json(['data' => Position::all()]);
 });
 

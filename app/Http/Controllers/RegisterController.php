@@ -10,10 +10,9 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Http\JsonResponse as IlluminateJsonResponse;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Hash;
-use PHPOpenSourceSaver\JWTAuth\Exceptions\JWTException;
-use PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth;
 use Symfony\Component\HttpFoundation\JsonResponse;
 
 use function Tinify\fromFile;
@@ -33,9 +32,9 @@ class RegisterController extends Controller
 
     /**
      * @param Request $request
-     * @return RedirectResponse
+     * @return RedirectResponse|IlluminateJsonResponse
      */
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request): RedirectResponse|IlluminateJsonResponse
     {
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|min:2|max:60',
@@ -45,14 +44,20 @@ class RegisterController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return redirect()->back()->withErrors($validator)->withInput();
+            if ($request->is('api/*')) {
+                return response()->json([
+                    'message' => $validator->getMessageBag(),
+                ]);
+            } else {
+                return redirect()->back()->withErrors($validator)->withInput();
+            }
         }
 
         $photoPath = $request->file('photo')->store('photos', 'public');
 
         $this->imageOptimization($photoPath);
 
-        User::create([
+        $newUser = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'phone' => $request->phone,
@@ -61,14 +66,22 @@ class RegisterController extends Controller
             'password' => Hash::make('password123')
         ]);
 
-        return redirect()->route('register.form')->with('success', 'User registered successfully!');
+        if ($request->is('api/*')) {
+            return response()->json([
+                "success" => true,
+                "user_id" => $newUser->id,
+                "message" => "New user successfully registered"
+            ]);
+        } else {
+            return redirect()->route('register.form')->with('success', 'User registered successfully!');
+        }
     }
 
     /**
      * @param $photoPath
      * @return void
      */
-    private function imageOptimization ($photoPath): void
+    private function imageOptimization($photoPath): void
     {
         setKey(env('TINYPNG_API_KEY'));
 
@@ -93,15 +106,11 @@ class RegisterController extends Controller
     {
         $credentials = $request->only('email', 'password');
 
-        try {
-            if (!JWTAuth::attempt($credentials) || !Auth::attempt($credentials)) {
-                return redirect()->back()->withErrors(['email' => 'Invalid credentials']);
-            }
-
-            return redirect()->route('register.form');
-        } catch (JWTException $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+        if (!Auth::attempt($credentials)) {
+            return redirect()->back()->withErrors(['email' => 'Invalid credentials']);
         }
+
+        return redirect()->route('register.form');
     }
 
 }
