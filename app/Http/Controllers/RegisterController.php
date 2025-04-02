@@ -73,7 +73,7 @@ class RegisterController extends Controller
                 "message" => "New user successfully registered"
             ]);
         } else {
-            return redirect()->route('register.form')->with('success', 'User registered successfully!');
+            return redirect()->route('users.index')->with('success', 'User registered successfully!');
         }
     }
 
